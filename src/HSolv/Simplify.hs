@@ -7,7 +7,7 @@ module HSolv.Simplify
   , simplifySome
   ) where
 
-import Data.Ratio (denominator, numerator)
+import Data.Ratio (denominator, numerator, (%))
 import HSolv.Expr
 
 simplifySome :: SomeExpr -> SomeExpr
@@ -87,8 +87,7 @@ simplifyNum expr = case expr of
   Sqrt a ->
     let a' = simplifyNum a
     in case a' of
-      NumLit 0 -> NumLit 0
-      NumLit 1 -> NumLit 1
+      NumLit r -> simplifySqrtRational r
       _ -> Sqrt a'
   Abs a ->
     let a' = simplifyNum a
@@ -219,10 +218,14 @@ mulFactor (k, rest) expr = case expr of
 buildMul :: Rational -> [NumExpr] -> NumExpr
 buildMul k terms =
   let normalized = filter (not . isOne) terms
-      base = if k == 1 then normalized else NumLit k : normalized
-  in case base of
-      [] -> NumLit 1
-      (t:ts) -> foldl Mul t ts
+  in case (k, normalized) of
+      (0, _) -> NumLit 0
+      (1, []) -> NumLit 1
+      (1, t:ts) -> foldl Mul t ts
+      (-1, []) -> NumLit (-1)
+      (-1, t:ts) -> Neg (foldl Mul t ts)
+      (_, []) -> NumLit k
+      (_, t:ts) -> foldl Mul (Mul (NumLit k) t) ts
 
 isOne :: NumExpr -> Bool
 isOne expr = case expr of
@@ -245,6 +248,62 @@ buildCoeff k term
   | k == -1 = Neg term
   | eqNum term (NumLit 1) = NumLit k
   | otherwise = Mul (NumLit k) term
+
+simplifySqrtRational :: Rational -> NumExpr
+simplifySqrtRational r
+  | r < 0 = Sqrt (NumLit r)
+  | otherwise =
+      case sqrtRationalMaybe r of
+        Just s -> NumLit s
+        Nothing ->
+          let (k, rest) = pullSquareFactor r
+          in if k == 1
+              then Sqrt (NumLit rest)
+              else simplifyMul (NumLit k) (Sqrt (NumLit rest))
+
+sqrtRationalMaybe :: Rational -> Maybe Rational
+sqrtRationalMaybe r
+  | r < 0 = Nothing
+  | otherwise = do
+      n <- integerSqrtExact (numerator r)
+      d <- integerSqrtExact (denominator r)
+      Just (n % d)
+
+pullSquareFactor :: Rational -> (Rational, Rational)
+pullSquareFactor r =
+  let (sn, rn) = squareDecompose (numerator r)
+      (sd, rd) = squareDecompose (denominator r)
+  in (sn % sd, rn % rd)
+
+squareDecompose :: Integer -> (Integer, Integer)
+squareDecompose n
+  | n == 0 = (0, 1)
+  | n < 0 = (1, n)
+  | otherwise = go 2 n 1
+  where
+    go p m acc
+      | p * p > m = (acc, m)
+      | otherwise =
+          let (count, rest) = factorCount p m 0
+              pairs = count `div` 2
+              acc' = acc * powInteger p pairs
+              rest' = if odd count then rest * p else rest
+          in go (p + 1) rest' acc'
+
+factorCount :: Integer -> Integer -> Int -> (Int, Integer)
+factorCount p m count
+  | m `mod` p /= 0 = (count, m)
+  | otherwise = factorCount p (m `div` p) (count + 1)
+
+powInteger :: Integer -> Int -> Integer
+powInteger base expn = iterate (* base) 1 !! expn
+
+integerSqrtExact :: Integer -> Maybe Integer
+integerSqrtExact n
+  | n < 0 = Nothing
+  | otherwise =
+      let r = floor (sqrt (fromInteger n :: Double))
+      in if r * r == n then Just r else Nothing
 
 eqNum :: NumExpr -> NumExpr -> Bool
 eqNum a b = case (a, b) of

@@ -50,6 +50,7 @@ main = do
         , testSolvePerfectSquare
         , testSolveConstant
         , testSolveNoReal
+        , testSolveIrrational
         ]
       failures = [msg | Fail msg <- (results <> qcResults)]
   if null failures
@@ -179,6 +180,16 @@ testSolveNoReal =
       case solveQuadratic "x" expr of
         Left _ -> Pass
         Right _ -> Fail "solve should fail for negative discriminant"
+
+testSolveIrrational :: TestResult
+testSolveIrrational =
+  case parseNumText "x^2 - 2" of
+    Left err -> Fail ("parse failed: " <> Text.unpack err)
+    Right expr ->
+      case solveQuadratic "x" expr of
+        Left err -> Fail ("solve failed: " <> Text.unpack err)
+        Right roots ->
+          assertEq "solve irrational" ["sqrt(2)", "-sqrt(2)"] (map prettyNum roots)
 
 propSimplifyIdempotent :: NumExprGen -> Bool
 propSimplifyIdempotent (NumExprGen expr) =
