@@ -48,6 +48,9 @@ simplifyNum expr = case expr of
     let a' = simplifyNum a
         b' = simplifyNum b
     in case (a', b') of
+      (x, y) | eqNum x y -> Mul (NumLit 2) x
+      (Neg x, y) | eqNum x y -> NumLit 0
+      (x, Neg y) | eqNum x y -> NumLit 0
       (NumLit 0, x) -> x
       (x, NumLit 0) -> x
       (NumLit x, NumLit y) -> NumLit (x + y)
@@ -174,3 +177,34 @@ rationalToInt r =
   if denominator r == 1
     then Just (numerator r)
     else Nothing
+
+eqNum :: NumExpr -> NumExpr -> Bool
+eqNum a b = case (a, b) of
+  (NumLit x, NumLit y) -> x == y
+  (Var x, Var y) -> x == y
+  (Add a1 b1, Add a2 b2) -> eqNum a1 a2 && eqNum b1 b2
+  (Mul a1 b1, Mul a2 b2) -> eqNum a1 a2 && eqNum b1 b2
+  (Pow a1 b1, Pow a2 b2) -> eqNum a1 a2 && eqNum b1 b2
+  (Neg x, Neg y) -> eqNum x y
+  (Sin x, Sin y) -> eqNum x y
+  (Cos x, Cos y) -> eqNum x y
+  (Tan x, Tan y) -> eqNum x y
+  (Exp x, Exp y) -> eqNum x y
+  (Log x, Log y) -> eqNum x y
+  (Sqrt x, Sqrt y) -> eqNum x y
+  (Abs x, Abs y) -> eqNum x y
+  (If c1 t1 f1, If c2 t2 f2) -> eqBool c1 c2 && eqNum t1 t2 && eqNum f1 f2
+  _ -> False
+
+eqBool :: BoolExpr -> BoolExpr -> Bool
+eqBool a b = case (a, b) of
+  (BoolLit x, BoolLit y) -> x == y
+  (And a1 b1, And a2 b2) -> eqBool a1 a2 && eqBool b1 b2
+  (Or a1 b1, Or a2 b2) -> eqBool a1 a2 && eqBool b1 b2
+  (Not x, Not y) -> eqBool x y
+  (Eq a1 b1, Eq a2 b2) -> eqNum a1 a2 && eqNum b1 b2
+  (Lt a1 b1, Lt a2 b2) -> eqNum a1 a2 && eqNum b1 b2
+  (Le a1 b1, Le a2 b2) -> eqNum a1 a2 && eqNum b1 b2
+  (Gt a1 b1, Gt a2 b2) -> eqNum a1 a2 && eqNum b1 b2
+  (Ge a1 b1, Ge a2 b2) -> eqNum a1 a2 && eqNum b1 b2
+  _ -> False

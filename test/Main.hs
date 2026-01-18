@@ -72,13 +72,13 @@ testSimplifyIdentity =
 testSimplifyCancel :: TestResult
 testSimplifyCancel =
   let expr = Add (Var "x") (Neg (Var "x"))
-  in assertEq "simplify cancel" "x + -x" (prettyNum (simplifyNum expr))
+  in assertEq "simplify cancel" "0" (prettyNum (simplifyNum expr))
 
 testDiffSquare :: TestResult
 testDiffSquare =
   let expr = Mul (Var "x") (Var "x")
       deriv = simplifyNum (diff "x" expr)
-  in assertEq "diff square" "x + x" (prettyNum deriv)
+  in assertEq "diff square" "2 * x" (prettyNum deriv)
 
 testEvalNumeric :: TestResult
 testEvalNumeric =

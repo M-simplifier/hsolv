@@ -5,6 +5,7 @@ module HSolv.Solve
   ( solveQuadratic
   ) where
 
+import Data.Ratio ((%), denominator, numerator)
 import Data.Text (Text)
 import HSolv.Expr
 import HSolv.Simplify (simplifyNum)
@@ -33,13 +34,21 @@ quadraticRoots a b c =
   let aExpr = NumLit a
       bExpr = NumLit b
       cExpr = NumLit c
-      twoA = Mul (NumLit 2) aExpr
-      disc = Add (Pow bExpr (NumLit 2)) (Mul (NumLit (-4)) (Mul aExpr cExpr))
-      sqrtDisc = Sqrt disc
-      negB = Neg bExpr
-      rootPlus = Mul (Add negB sqrtDisc) (Pow twoA (NumLit (-1)))
-      rootMinus = Mul (Add negB (Neg sqrtDisc)) (Pow twoA (NumLit (-1)))
-  in [rootPlus, rootMinus]
+      discR = b * b - 4 * a * c
+  in case sqrtRationalMaybe discR of
+      Just s ->
+        let denom = NumLit (2 * a)
+            rootPlus = Mul (Add (Neg bExpr) (NumLit s)) (Pow denom (NumLit (-1)))
+            rootMinus = Mul (Add (Neg bExpr) (NumLit (-s))) (Pow denom (NumLit (-1)))
+        in [rootPlus, rootMinus]
+      Nothing ->
+        let twoA = Mul (NumLit 2) aExpr
+            disc = Add (Pow bExpr (NumLit 2)) (Mul (NumLit (-4)) (Mul aExpr cExpr))
+            sqrtDisc = Sqrt disc
+            negB = Neg bExpr
+            rootPlus = Mul (Add negB sqrtDisc) (Pow twoA (NumLit (-1)))
+            rootMinus = Mul (Add negB (Neg sqrtDisc)) (Pow twoA (NumLit (-1)))
+        in [rootPlus, rootMinus]
 
 toPoly :: Text -> NumExpr -> Maybe Poly2
 toPoly var expr = case expr of
@@ -84,3 +93,20 @@ mulPoly (Poly2 a1 b1 c1) (Poly2 a2 b2 c2) =
   in if x4 /= 0 || x3 /= 0
       then Nothing
       else Just (Poly2 x2 x1 x0)
+
+sqrtRationalMaybe :: Rational -> Maybe Rational
+sqrtRationalMaybe r
+  | r < 0 = Nothing
+  | otherwise = do
+      let n = numerator r
+          d = denominator r
+      n' <- integerSqrtExact n
+      d' <- integerSqrtExact d
+      pure (n' % d')
+
+integerSqrtExact :: Integer -> Maybe Integer
+integerSqrtExact n
+  | n < 0 = Nothing
+  | otherwise =
+      let r = floor (sqrt (fromInteger n :: Double))
+      in if r * r == n then Just r else Nothing
