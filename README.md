@@ -22,7 +22,7 @@ cabal run hsolv
 - `:suggest <prefix>`
 - `simplify <expr>`
 - `diff <var> <expr>`
-- `solve <var> <expr>`
+- `solve <var> <expr>` (real roots only)
 - `eval <expr> with x=1 y=2`
 - `pretty <expr>`
 - `:quit`

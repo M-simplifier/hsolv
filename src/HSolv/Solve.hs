@@ -20,7 +20,9 @@ solveQuadratic var expr = do
       Left ("cannot solve: expression is not a polynomial in " <> var)
   if a == 0
     then solveLinear b c
-    else Right (map simplifyNum (quadraticRoots a b c))
+    else case quadraticRoots a b c of
+      Left err -> Left err
+      Right roots -> Right (map simplifyNum roots)
 
 solveLinear :: Rational -> Rational -> Either Text [NumExpr]
 solveLinear b c
@@ -29,26 +31,28 @@ solveLinear b c
   | otherwise =
       Right [simplifyNum (Mul (NumLit (-c)) (Pow (NumLit b) (NumLit (-1))))]
 
-quadraticRoots :: Rational -> Rational -> Rational -> [NumExpr]
+quadraticRoots :: Rational -> Rational -> Rational -> Either Text [NumExpr]
 quadraticRoots a b c =
   let aExpr = NumLit a
       bExpr = NumLit b
       cExpr = NumLit c
       discR = b * b - 4 * a * c
-  in case sqrtRationalMaybe discR of
-      Just s ->
-        let denom = NumLit (2 * a)
-            rootPlus = Mul (Add (Neg bExpr) (NumLit s)) (Pow denom (NumLit (-1)))
-            rootMinus = Mul (Add (Neg bExpr) (NumLit (-s))) (Pow denom (NumLit (-1)))
-        in [rootPlus, rootMinus]
-      Nothing ->
-        let twoA = Mul (NumLit 2) aExpr
-            disc = Add (Pow bExpr (NumLit 2)) (Mul (NumLit (-4)) (Mul aExpr cExpr))
-            sqrtDisc = Sqrt disc
-            negB = Neg bExpr
-            rootPlus = Mul (Add negB sqrtDisc) (Pow twoA (NumLit (-1)))
-            rootMinus = Mul (Add negB (Neg sqrtDisc)) (Pow twoA (NumLit (-1)))
-        in [rootPlus, rootMinus]
+  in if discR < 0
+      then Left "cannot solve: discriminant is negative"
+      else case sqrtRationalMaybe discR of
+        Just s ->
+          let denom = NumLit (2 * a)
+              rootPlus = Mul (Add (Neg bExpr) (NumLit s)) (Pow denom (NumLit (-1)))
+              rootMinus = Mul (Add (Neg bExpr) (NumLit (-s))) (Pow denom (NumLit (-1)))
+          in Right [rootPlus, rootMinus]
+        Nothing ->
+          let twoA = Mul (NumLit 2) aExpr
+              disc = Add (Pow bExpr (NumLit 2)) (Mul (NumLit (-4)) (Mul aExpr cExpr))
+              sqrtDisc = Sqrt disc
+              negB = Neg bExpr
+              rootPlus = Mul (Add negB sqrtDisc) (Pow twoA (NumLit (-1)))
+              rootMinus = Mul (Add negB (Neg sqrtDisc)) (Pow twoA (NumLit (-1)))
+          in Right [rootPlus, rootMinus]
 
 toPoly :: Text -> NumExpr -> Maybe Poly2
 toPoly var expr = case expr of

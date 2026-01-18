@@ -40,6 +40,8 @@ main = do
         , testSimplifyCombineLike
         , testSimplifyCombineCoeff
         , testSimplifyMulCoeff
+        , testSimplifyFlattenAdd
+        , testSimplifyMulNeg
         , testDiffSquare
         , testEvalNumeric
         , testSolveQuadratic
@@ -47,6 +49,7 @@ main = do
         , testSolveNonPolynomial
         , testSolvePerfectSquare
         , testSolveConstant
+        , testSolveNoReal
         ]
       failures = [msg | Fail msg <- (results <> qcResults)]
   if null failures
@@ -93,6 +96,16 @@ testSimplifyMulCoeff :: TestResult
 testSimplifyMulCoeff =
   let expr = Mul (NumLit 2) (Mul (NumLit 3) (Var "x"))
   in assertEq "simplify mul coeff" "6 * x" (prettyNum (simplifyNum expr))
+
+testSimplifyFlattenAdd :: TestResult
+testSimplifyFlattenAdd =
+  let expr = Add (Var "x") (Add (Mul (NumLit 2) (Var "x")) (NumLit 3))
+  in assertEq "simplify flatten add" "3 * x + 3" (prettyNum (simplifyNum expr))
+
+testSimplifyMulNeg :: TestResult
+testSimplifyMulNeg =
+  let expr = Mul (Neg (Var "x")) (NumLit 2)
+  in assertEq "simplify mul neg" "-2 * x" (prettyNum (simplifyNum expr))
 
 testDiffSquare :: TestResult
 testDiffSquare =
@@ -157,6 +170,15 @@ testSolveConstant =
       case solveQuadratic "x" expr of
         Left _ -> Pass
         Right _ -> Fail "solve constant should fail"
+
+testSolveNoReal :: TestResult
+testSolveNoReal =
+  case parseNumText "x^2 + 1" of
+    Left err -> Fail ("parse failed: " <> Text.unpack err)
+    Right expr ->
+      case solveQuadratic "x" expr of
+        Left _ -> Pass
+        Right _ -> Fail "solve should fail for negative discriminant"
 
 propSimplifyIdempotent :: NumExprGen -> Bool
 propSimplifyIdempotent (NumExprGen expr) =

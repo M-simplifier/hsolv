@@ -18,7 +18,7 @@ topics = Map.fromList
   [ ("help", "Commands: :help, :doc <topic>, :suggest <prefix>, simplify <expr>, diff <var> <expr>, solve <var> <expr>, eval <expr> with x=1 y=2, pretty <expr>, :quit.")
   , ("syntax", "Numbers, variables, + - * / ^, parentheses. Functions: sin, cos, tan, exp, log, sqrt, abs. Constants: pi, e. Booleans: true, false, &&, ||, !, comparisons == != < <= > >=. Conditionals: if <bool> then <num> else <num>.")
   , ("diff", "diff <var> <expr> computes symbolic derivative and then simplifies the result.")
-  , ("solve", "solve <var> <expr> solves expr = 0 for quadratic or linear polynomials in <var>.")
+  , ("solve", "solve <var> <expr> solves expr = 0 for quadratic or linear polynomials in <var> (real roots only).")
   , ("eval", "eval <expr> with x=1 y=2 evaluates using Double. Missing variables are errors.")
   , ("simplify", "simplify <expr> applies algebraic/boolean simplifications (identity, neutral elements, constant folding).")
   , ("pretty", "pretty <expr> prints the canonical formatting used by the engine.")

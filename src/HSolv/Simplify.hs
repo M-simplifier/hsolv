@@ -45,31 +45,9 @@ simplifyNum expr = case expr of
     Neg b -> b
     a' -> Neg a'
   Add a b ->
-    let a' = simplifyNum a
-        b' = simplifyNum b
-    in case (a', b') of
-      (NumLit x, NumLit y) -> NumLit (x + y)
-      (x, y) ->
-        case combineLike x y of
-          Just combined -> combined
-          Nothing -> case (x, y) of
-            (NumLit 0, t) -> t
-            (t, NumLit 0) -> t
-            _ -> Add x y
+    simplifyAdd (simplifyNum a) (simplifyNum b)
   Mul a b ->
-    let a' = simplifyNum a
-        b' = simplifyNum b
-    in case (a', b') of
-      (NumLit 0, _) -> NumLit 0
-      (_, NumLit 0) -> NumLit 0
-      (NumLit 1, x) -> x
-      (x, NumLit 1) -> x
-      (NumLit x, NumLit y) -> NumLit (x * y)
-      (NumLit x, Mul (NumLit y) t) -> Mul (NumLit (x * y)) t
-      (Mul (NumLit y) t, NumLit x) -> Mul (NumLit (x * y)) t
-      (Neg x, y) -> Neg (Mul x y)
-      (x, Neg y) -> Neg (Mul x y)
-      _ -> Mul a' b'
+    simplifyMul (simplifyNum a) (simplifyNum b)
   Pow a b ->
     let a' = simplifyNum a
         b' = simplifyNum b
@@ -183,13 +161,73 @@ rationalToInt r =
     then Just (numerator r)
     else Nothing
 
-combineLike :: NumExpr -> NumExpr -> Maybe NumExpr
-combineLike a b =
-  let (ka, ta) = splitCoeff a
-      (kb, tb) = splitCoeff b
-  in if eqNum ta tb
-      then Just (buildCoeff (ka + kb) ta)
-      else Nothing
+simplifyAdd :: NumExpr -> NumExpr -> NumExpr
+simplifyAdd left right =
+  let terms = collectAdd left <> collectAdd right
+      (constSum, termGroups) = foldl addTerm (0, []) terms
+      builtTerms = map (uncurry buildCoeff) termGroups
+      allTerms = builtTerms <> (if constSum == 0 then [] else [NumLit constSum])
+  in buildAdd allTerms
+
+collectAdd :: NumExpr -> [NumExpr]
+collectAdd expr = case expr of
+  Add a b -> collectAdd a <> collectAdd b
+  _ -> [expr]
+
+addTerm :: (Rational, [(Rational, NumExpr)]) -> NumExpr -> (Rational, [(Rational, NumExpr)])
+addTerm (k, groups) expr = case expr of
+  NumLit r -> (k + r, groups)
+  _ ->
+    let (coef, term) = splitCoeff expr
+    in if coef == 0
+        then (k, groups)
+        else (k, insertOrAdd coef term groups)
+
+insertOrAdd :: Rational -> NumExpr -> [(Rational, NumExpr)] -> [(Rational, NumExpr)]
+insertOrAdd coef term [] = [(coef, term)]
+insertOrAdd coef term ((k, t):rest)
+  | eqNum term t =
+      let k' = k + coef
+      in if k' == 0 then rest else (k', t) : rest
+  | otherwise = (k, t) : insertOrAdd coef term rest
+
+buildAdd :: [NumExpr] -> NumExpr
+buildAdd [] = NumLit 0
+buildAdd (t:ts) = foldl Add t ts
+
+simplifyMul :: NumExpr -> NumExpr -> NumExpr
+simplifyMul left right =
+  let factors = collectMul left <> collectMul right
+      (prod, rest) = foldl mulFactor (1, []) factors
+  in if prod == 0
+      then NumLit 0
+      else buildMul prod rest
+
+collectMul :: NumExpr -> [NumExpr]
+collectMul expr = case expr of
+  Mul a b -> collectMul a <> collectMul b
+  _ -> [expr]
+
+mulFactor :: (Rational, [NumExpr]) -> NumExpr -> (Rational, [NumExpr])
+mulFactor (k, rest) expr = case expr of
+  NumLit r -> (k * r, rest)
+  Neg t ->
+    let (k', rest') = mulFactor (k, rest) t
+    in (-k', rest')
+  _ -> (k, rest <> [expr])
+
+buildMul :: Rational -> [NumExpr] -> NumExpr
+buildMul k terms =
+  let normalized = filter (not . isOne) terms
+      base = if k == 1 then normalized else NumLit k : normalized
+  in case base of
+      [] -> NumLit 1
+      (t:ts) -> foldl Mul t ts
+
+isOne :: NumExpr -> Bool
+isOne expr = case expr of
+  NumLit r -> r == 1
+  _ -> False
 
 splitCoeff :: NumExpr -> (Rational, NumExpr)
 splitCoeff expr = case expr of
