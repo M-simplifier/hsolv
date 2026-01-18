@@ -84,8 +84,8 @@ attrBackground = attrName "background"
 
 drawUI :: AppState -> [Widget Name]
 drawUI st =
-  [ backdrop
-  , ui
+  [ ui
+  , backdrop
   ]
   where
     backdrop = withAttr attrBackground (fill ' ')
