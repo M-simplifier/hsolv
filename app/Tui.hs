@@ -11,6 +11,7 @@ import Data.Text (Text)
 import qualified Data.Text as Text
 import qualified Graphics.Vty as V
 import HSolv.Command
+import Lens.Micro (Lens')
 
 data Name = InputEditor deriving (Eq, Ord, Show)
 
@@ -39,7 +40,7 @@ app :: App AppState e Name
 app = App
   { appDraw = drawUI
   , appHandleEvent = handleEvent
-  , appStartEvent = pure
+  , appStartEvent = pure ()
   , appAttrMap = const theMap
   , appChooseCursor = showFirstCursor
   }
@@ -98,10 +99,9 @@ handleEvent (VtyEvent (V.EvKey V.KUp [])) = modify historyPrev
 handleEvent (VtyEvent (V.EvKey V.KDown [])) = modify historyNext
 handleEvent (VtyEvent (V.EvKey (V.KChar '\t') [])) = modify applySuggestion
 handleEvent ev = do
+  zoom editorLens (handleEditorEvent ev)
   st <- get
-  ed <- handleEditorEvent ev (stEditor st)
-  let st' = st { stEditor = ed }
-  put (refreshInput st')
+  put (refreshInput st)
 
 appendOutput :: AppState -> Text -> Text -> AppState
 appendOutput st line input =
@@ -184,3 +184,6 @@ safeIndex n xs
   | otherwise = case drop n xs of
       (y:_) -> Just y
       [] -> Nothing
+
+editorLens :: Lens' AppState (Editor Text Name)
+editorLens f st = fmap (\ed' -> st { stEditor = ed' }) (f (stEditor st))
