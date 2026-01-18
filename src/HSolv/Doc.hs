@@ -15,7 +15,7 @@ import Data.Text (Text)
 
 topics :: Map Text Text
 topics = Map.fromList
-  [ ("help", "Commands: :help, :doc <topic>, :suggest <prefix>, simplify <expr>, diff <var> <expr>, solve <var> <expr>, eval <expr> with x=1 y=2, pretty <expr>, :quit.")
+  [ ("help", "Commands: :help, :doc <topic>, :suggest <prefix>, simplify <expr>, diff <var> <expr>, solve <var> <expr>, eval <expr> with x=1 y=2, pretty <expr>, :quit. Rich TUI: cabal run hsolv-tui.")
   , ("syntax", "Numbers, variables, + - * / ^, parentheses. Functions: sin, cos, tan, exp, log, sqrt, abs. Constants: pi, e. Booleans: true, false, &&, ||, !, comparisons == != < <= > >=. Conditionals: if <bool> then <num> else <num>.")
   , ("diff", "diff <var> <expr> computes symbolic derivative and then simplifies the result.")
   , ("solve", "solve <var> <expr> solves expr = 0 for quadratic or linear polynomials in <var> (real roots only).")

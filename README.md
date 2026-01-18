@@ -9,6 +9,16 @@ cabal build
 cabal run hsolv
 ```
 
+## Rich TUI
+
+```
+cabal run hsolv-tui
+```
+
+Key bindings: Enter=run, Tab=complete, Up/Down=history, Esc/Ctrl-C=quit.
+
+Note: `hsolv-tui` depends on `vty`, which needs the system `tinfo` library (e.g. `libtinfo-dev`).
+
 ## UX highlights
 
 - Command-driven REPL with predictable outputs and stable pretty-printing.

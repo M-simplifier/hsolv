@@ -1,0 +1,186 @@
+{-# LANGUAGE OverloadedStrings #-}
+
+module Main where
+
+import Brick
+import Brick.Widgets.Border
+import Brick.Widgets.Edit
+import Data.Functor (void)
+import Data.Maybe (fromMaybe)
+import Data.Text (Text)
+import qualified Data.Text as Text
+import qualified Graphics.Vty as V
+import HSolv.Command
+
+data Name = InputEditor deriving (Eq, Ord, Show)
+
+data AppState = AppState
+  { stEditor :: Editor Text Name
+  , stOutput :: [Text]
+  , stSuggestions :: [Text]
+  , stDoc :: Text
+  , stHistory :: [Text]
+  , stHistoryIndex :: Int
+  }
+
+main :: IO ()
+main = do
+  let initial = AppState
+        { stEditor = editor InputEditor (Just 1) ""
+        , stOutput = ["hsolv TUI: Enter=run  Tab=complete  Up/Down=history  Esc/Ctrl-C=quit"]
+        , stSuggestions = []
+        , stDoc = docForInput ""
+        , stHistory = []
+        , stHistoryIndex = 0
+        }
+  void (defaultMain app initial)
+
+app :: App AppState e Name
+app = App
+  { appDraw = drawUI
+  , appHandleEvent = handleEvent
+  , appStartEvent = pure
+  , appAttrMap = const theMap
+  , appChooseCursor = showFirstCursor
+  }
+
+theMap :: AttrMap
+theMap = attrMap V.defAttr
+  [ (editAttr, V.white `on` V.black)
+  , (editFocusedAttr, V.black `on` V.yellow)
+  ]
+
+drawUI :: AppState -> [Widget Name]
+drawUI st =
+  [ vBox
+      [ hBox
+          [ hLimitPercent 70 $ borderWithLabel (str "Output") (renderOutput st)
+          , vBox
+              [ borderWithLabel (str "Suggestions") (renderSuggestions st)
+              , borderWithLabel (str "Doc") (padAll 1 (txtWrap (stDoc st)))
+              ]
+          ]
+      , borderWithLabel (str "Input") (padAll 1 (renderEditor (txt . Text.unlines) True (stEditor st)))
+      , padLeftRight 1 (txt "Enter=run  Tab=complete  Up/Down=history  Esc/Ctrl-C=quit")
+      ]
+  ]
+
+renderOutput :: AppState -> Widget Name
+renderOutput st =
+  let items = take 200 (stOutput st)
+      lines' = reverse items
+  in padAll 1 (vBox (map txtWrap lines'))
+
+renderSuggestions :: AppState -> Widget Name
+renderSuggestions st =
+  let items = take 8 (stSuggestions st)
+      rows = if null items then ["(no matches)"] else items
+  in padAll 1 (vBox (map txt rows))
+
+handleEvent :: BrickEvent Name e -> EventM Name AppState ()
+handleEvent (VtyEvent (V.EvKey V.KEsc [])) = halt
+handleEvent (VtyEvent (V.EvKey (V.KChar 'c') [V.MCtrl])) = halt
+handleEvent (VtyEvent (V.EvKey V.KEnter [])) = do
+  st <- get
+  let input = Text.strip (Text.intercalate "\n" (getEditContents (stEditor st)))
+  if Text.null input
+    then pure ()
+    else case parseCommand input of
+      Right CmdQuit -> halt
+      Left err -> put (appendOutput st ("Error: " <> err) input)
+      Right cmd ->
+        case runCommand cmd of
+          Left err -> put (appendOutput st ("Error: " <> err) input)
+          Right outputs -> put (appendOutputs st outputs input)
+  st' <- get
+  put (refreshInput st')
+handleEvent (VtyEvent (V.EvKey V.KUp [])) = modify historyPrev
+handleEvent (VtyEvent (V.EvKey V.KDown [])) = modify historyNext
+handleEvent (VtyEvent (V.EvKey (V.KChar '\t') [])) = modify applySuggestion
+handleEvent ev = do
+  st <- get
+  ed <- handleEditorEvent ev (stEditor st)
+  let st' = st { stEditor = ed }
+  put (refreshInput st')
+
+appendOutput :: AppState -> Text -> Text -> AppState
+appendOutput st line input =
+  let header = ">> " <> input
+      outputs = line : header : stOutput st
+  in st
+    { stOutput = outputs
+    , stHistory = input : stHistory st
+    , stHistoryIndex = 0
+    }
+
+appendOutputs :: AppState -> [Text] -> Text -> AppState
+appendOutputs st outputs input =
+  let header = ">> " <> input
+      items = reverse outputs <> [header]
+  in st
+    { stOutput = items <> stOutput st
+    , stHistory = input : stHistory st
+    , stHistoryIndex = 0
+    }
+
+refreshInput :: AppState -> AppState
+refreshInput st =
+  let input = Text.strip (Text.intercalate "\n" (getEditContents (stEditor st)))
+      suggest = suggestMatches (currentToken input)
+      doc = docForInput input
+  in st { stSuggestions = suggest, stDoc = doc }
+
+currentToken :: Text -> Text
+currentToken input =
+  case reverse (Text.words input) of
+    (tok:_) -> tok
+    [] -> input
+
+applySuggestion :: AppState -> AppState
+applySuggestion st = case stSuggestions st of
+  (s:_) ->
+    let input = Text.intercalate "\n" (getEditContents (stEditor st))
+        next = replaceLastToken input s
+    in refreshInput st { stEditor = editor InputEditor (Just 1) next }
+  [] -> st
+
+replaceLastToken :: Text -> Text -> Text
+replaceLastToken input suggestion =
+  let parts = Text.words input
+  in case parts of
+      [] -> suggestion
+      [_] -> suggestion
+      _ ->
+        let prefix = Text.unwords (init parts)
+        in prefix <> " " <> suggestion
+
+historyPrev :: AppState -> AppState
+historyPrev st =
+  let idx = stHistoryIndex st
+      hist = stHistory st
+  in if idx < length hist
+      then applyHistory st (idx + 1)
+      else st
+
+historyNext :: AppState -> AppState
+historyNext st =
+  let idx = stHistoryIndex st
+  in if idx > 1
+      then applyHistory st (idx - 1)
+      else st { stHistoryIndex = 0, stEditor = editor InputEditor (Just 1) "" }
+
+applyHistory :: AppState -> Int -> AppState
+applyHistory st idx =
+  let hist = stHistory st
+      value = fromMaybe "" (safeIndex (idx - 1) hist)
+  in refreshInput st
+      { stHistoryIndex = idx
+      , stEditor = editor InputEditor (Just 1) value
+      }
+
+safeIndex :: Int -> [a] -> Maybe a
+safeIndex n xs
+  | n < 0 = Nothing
+  | otherwise = case drop n xs of
+      (y:_) -> Just y
+      [] -> Nothing
