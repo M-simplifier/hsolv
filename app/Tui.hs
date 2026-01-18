@@ -54,16 +54,19 @@ theMap = attrMap V.defAttr
 drawUI :: AppState -> [Widget Name]
 drawUI st =
   [ vBox
-      [ hBox
-          [ hLimitPercent 70 $ borderWithLabel (str "Output") (renderOutput st)
-          , vBox
-              [ vLimit suggestionsHeight $
-                  borderWithLabel (str "Suggestions") (renderSuggestions st)
-              , vLimit docHeight $
-                  borderWithLabel (str "Doc") (padAll 1 (txtWrap (stDoc st)))
-              ]
-          ]
-      , borderWithLabel (str "Input") (padAll 1 (renderEditor (txt . Text.unlines) True (stEditor st)))
+      [ vLimitPercent 80 $
+          hBox
+            [ hLimitPercent 70 $ borderWithLabel (str "Output") (renderOutput st)
+            , vBox
+                [ vLimit suggestionsHeight $
+                    borderWithLabel (str "Suggestions") (renderSuggestions st)
+                , vLimit docHeight $
+                    borderWithLabel (str "Doc") (padAll 1 (txtWrap (stDoc st)))
+                , fill ' '
+                ]
+            ]
+      , vLimit 3 $
+          borderWithLabel (str "Input") (padAll 0 (renderEditor (txt . Text.unlines) True (stEditor st)))
       , padLeftRight 1 (txt "Enter=run  Tab=complete  Up/Down=history  Esc/Ctrl-C=quit")
       ]
   ]
@@ -84,7 +87,7 @@ renderSuggestions :: AppState -> Widget Name
 renderSuggestions st =
   let items = take 8 (stSuggestions st)
       rows = if null items then ["(no matches)"] else items
-  in padAll 1 (vBox (map txt rows))
+  in padAll 1 (vBox (map txt rows <> [fill ' ']))
 
 handleEvent :: BrickEvent Name e -> EventM Name AppState ()
 handleEvent (VtyEvent (V.EvKey V.KEsc [])) = halt
