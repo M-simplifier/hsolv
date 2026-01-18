@@ -48,15 +48,18 @@ app = App
 
 theMap :: AttrMap
 theMap = attrMap baseAttr
-  [ (editAttr, V.white `on` rgb 20 22 28)
-  , (editFocusedAttr, rgb 20 22 28 `on` rgb 255 214 90)
+  [ (editAttr, rgb 230 233 240 `on` rgb 22 24 30)
+  , (editFocusedAttr, rgb 230 233 240 `on` rgb 26 30 40)
   , (attrTitle, V.withStyle (rgb 138 180 255 `on` rgb 17 19 24) V.bold)
   , (attrOutput, rgb 230 233 240 `on` rgb 17 19 24)
+  , (attrOutputText, rgb 230 233 240 `on` rgb 17 19 24)
+  , (attrPrompt, V.withStyle (rgb 120 214 198 `on` rgb 17 19 24) V.bold)
+  , (attrError, V.withStyle (rgb 255 120 120 `on` rgb 24 16 16) V.bold)
   , (attrSidebar, rgb 200 205 220 `on` rgb 13 15 20)
   , (attrSuggestion, rgb 120 214 198 `on` rgb 13 15 20)
   , (attrHint, rgb 150 155 170 `on` rgb 17 19 24)
   , (attrMuted, rgb 110 115 130 `on` rgb 13 15 20)
-  , (attrInputBorder, rgb 255 214 90 `on` rgb 17 19 24)
+  , (attrInputBorder, rgb 138 180 255 `on` rgb 17 19 24)
   ]
   where
     baseAttr = rgb 230 233 240 `on` rgb 17 19 24
@@ -65,6 +68,7 @@ rgb :: Int -> Int -> Int -> V.Color
 rgb = V.rgbColor
 
 attrTitle, attrOutput, attrSidebar, attrSuggestion, attrHint, attrMuted, attrInputBorder :: AttrName
+attrOutputText, attrError, attrPrompt :: AttrName
 attrTitle = attrName "title"
 attrOutput = attrName "output"
 attrSidebar = attrName "sidebar"
@@ -72,6 +76,9 @@ attrSuggestion = attrName "suggestion"
 attrHint = attrName "hint"
 attrMuted = attrName "muted"
 attrInputBorder = attrName "input-border"
+attrOutputText = attrName "output-text"
+attrError = attrName "error"
+attrPrompt = attrName "prompt"
 
 drawUI :: AppState -> [Widget Name]
 drawUI st =
@@ -110,7 +117,7 @@ renderOutput :: AppState -> Widget Name
 renderOutput st =
   let items = take 200 (stOutput st)
       lines' = reverse items
-  in padAll 1 (vBox (map txtWrap lines'))
+  in padAll 1 (vBox (map renderOutputLine lines'))
 
 renderSuggestions :: AppState -> Widget Name
 renderSuggestions st =
@@ -118,6 +125,12 @@ renderSuggestions st =
       rows = if null items then ["(no matches)"] else items
       renderRow row = withAttr attrSuggestion (txt row)
   in padAll 1 (vBox (map renderRow rows <> [withAttr attrMuted (fill ' ')]))
+
+renderOutputLine :: Text -> Widget Name
+renderOutputLine line
+  | "Error:" `Text.isPrefixOf` line = withAttr attrError (txtWrap line)
+  | ">> " `Text.isPrefixOf` line = withAttr attrPrompt (txtWrap line)
+  | otherwise = withAttr attrOutputText (txtWrap line)
 
 handleEvent :: BrickEvent Name e -> EventM Name AppState ()
 handleEvent (VtyEvent (V.EvKey V.KEsc [])) = halt
