@@ -53,6 +53,7 @@ common warnings
 executable hsolv
     -- Import common warning flags.
     import:           warnings
+    ghc-options:      -threaded
 
     -- .hs or .lhs file containing the Main module.
     main-is:          Main.hs
@@ -86,6 +87,7 @@ executable hsolv
 
 executable hsolv-tui
     import:           warnings
+    ghc-options:      -threaded
     main-is:          Tui.hs
     other-modules:
         HSolv.Command

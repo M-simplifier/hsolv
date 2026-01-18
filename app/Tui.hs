@@ -57,14 +57,22 @@ drawUI st =
       [ hBox
           [ hLimitPercent 70 $ borderWithLabel (str "Output") (renderOutput st)
           , vBox
-              [ borderWithLabel (str "Suggestions") (renderSuggestions st)
-              , borderWithLabel (str "Doc") (padAll 1 (txtWrap (stDoc st)))
+              [ vLimit suggestionsHeight $
+                  borderWithLabel (str "Suggestions") (renderSuggestions st)
+              , vLimit docHeight $
+                  borderWithLabel (str "Doc") (padAll 1 (txtWrap (stDoc st)))
               ]
           ]
       , borderWithLabel (str "Input") (padAll 1 (renderEditor (txt . Text.unlines) True (stEditor st)))
       , padLeftRight 1 (txt "Enter=run  Tab=complete  Up/Down=history  Esc/Ctrl-C=quit")
       ]
   ]
+
+suggestionsHeight :: Int
+suggestionsHeight = 10
+
+docHeight :: Int
+docHeight = 12
 
 renderOutput :: AppState -> Widget Name
 renderOutput st =
