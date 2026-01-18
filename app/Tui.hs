@@ -60,6 +60,7 @@ theMap = attrMap baseAttr
   , (attrHint, rgb 150 155 170 `on` rgb 17 19 24)
   , (attrMuted, rgb 110 115 130 `on` rgb 13 15 20)
   , (attrInputBorder, rgb 138 180 255 `on` rgb 17 19 24)
+  , (attrBackground, rgb 230 233 240 `on` rgb 17 19 24)
   ]
   where
     baseAttr = rgb 230 233 240 `on` rgb 17 19 24
@@ -68,7 +69,7 @@ rgb :: Int -> Int -> Int -> V.Color
 rgb = V.rgbColor
 
 attrTitle, attrOutput, attrSidebar, attrSuggestion, attrHint, attrMuted, attrInputBorder :: AttrName
-attrOutputText, attrError, attrPrompt :: AttrName
+attrOutputText, attrError, attrPrompt, attrBackground :: AttrName
 attrTitle = attrName "title"
 attrOutput = attrName "output"
 attrSidebar = attrName "sidebar"
@@ -79,32 +80,37 @@ attrInputBorder = attrName "input-border"
 attrOutputText = attrName "output-text"
 attrError = attrName "error"
 attrPrompt = attrName "prompt"
+attrBackground = attrName "background"
 
 drawUI :: AppState -> [Widget Name]
 drawUI st =
-  [ withBorderStyle unicodeRounded $
-    vBox
-      [ vLimitPercent 80 $
-          hBox
-            [ hLimitPercent 70 $
-                withAttr attrOutput $
-                  borderWithLabel (withAttr attrTitle (str "Output")) (renderOutput st)
-            , vBox
-                [ vLimit suggestionsHeight $
-                    withAttr attrSidebar $
-                      borderWithLabel (withAttr attrTitle (str "Suggestions")) (renderSuggestions st)
-                , vLimit docHeight $
-                    withAttr attrSidebar $
-                      borderWithLabel (withAttr attrTitle (str "Doc")) (padAll 1 (txtWrap (stDoc st)))
+  [ withAttr attrBackground $
+      vBox
+        [ withBorderStyle unicodeRounded $
+            vLimitPercent 80 $
+              hBox
+                [ hLimitPercent 70 $
+                    withAttr attrOutput $
+                      borderWithLabel (withAttr attrTitle (str "Output")) (renderOutput st)
+                , vBox
+                    [ vLimit suggestionsHeight $
+                        withAttr attrSidebar $
+                          borderWithLabel (withAttr attrTitle (str "Suggestions")) (renderSuggestions st)
+                    , vLimit docHeight $
+                        withAttr attrSidebar $
+                          borderWithLabel (withAttr attrTitle (str "Doc")) (padAll 1 (txtWrap (stDoc st)))
+                    , fill ' '
+                    ]
                 , fill ' '
                 ]
-            ]
-      , vLimit 3 $
-          withAttr attrInputBorder $
-            borderWithLabel (withAttr attrTitle (str "Input")) (padAll 0 (renderEditor (txt . Text.unlines) True (stEditor st)))
-      , withAttr attrHint $
-          padLeftRight 1 (txt "Enter=run  Tab=complete  Up/Down=history  Esc/Ctrl-C=quit")
-      ]
+        , withBorderStyle unicodeRounded $
+            vLimit 3 $
+              withAttr attrInputBorder $
+                borderWithLabel (withAttr attrTitle (str "Input")) (padAll 0 (renderEditor (txt . Text.unlines) True (stEditor st)))
+        , withAttr attrHint $
+            padLeftRight 1 (txt "Enter=run  Tab=complete  Up/Down=history  Esc/Ctrl-C=quit")
+        , fill ' '
+        ]
   ]
 
 suggestionsHeight :: Int
