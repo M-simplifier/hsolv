@@ -84,7 +84,12 @@ attrBackground = attrName "background"
 
 drawUI :: AppState -> [Widget Name]
 drawUI st =
-  [ withAttr attrBackground $
+  [ ui
+  , backdrop
+  ]
+  where
+    backdrop = withAttr attrBackground (fill ' ')
+    ui =
       vBox
         [ withBorderStyle unicodeRounded $
             vLimitPercent 80 $
@@ -111,7 +116,6 @@ drawUI st =
             padLeftRight 1 (txt "Enter=run  Tab=complete  Up/Down=history  Esc/Ctrl-C=quit")
         , fill ' '
         ]
-  ]
 
 suggestionsHeight :: Int
 suggestionsHeight = 10
