@@ -123,7 +123,7 @@ renderSuggestions :: AppState -> Widget Name
 renderSuggestions st =
   let items = take 8 (stSuggestions st)
       rows = if null items then ["(no matches)"] else items
-      renderRow row = withAttr attrSuggestion (txt row)
+      renderRow row = withAttr attrSuggestion (padRight Max (txt row))
   in padAll 1 (vBox (map renderRow rows <> [withAttr attrMuted (fill ' ')]))
 
 renderOutputLine :: Text -> Widget Name
