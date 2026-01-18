@@ -48,13 +48,14 @@ simplifyNum expr = case expr of
     let a' = simplifyNum a
         b' = simplifyNum b
     in case (a', b') of
-      (x, y) | eqNum x y -> Mul (NumLit 2) x
-      (Neg x, y) | eqNum x y -> NumLit 0
-      (x, Neg y) | eqNum x y -> NumLit 0
-      (NumLit 0, x) -> x
-      (x, NumLit 0) -> x
       (NumLit x, NumLit y) -> NumLit (x + y)
-      _ -> Add a' b'
+      (x, y) ->
+        case combineLike x y of
+          Just combined -> combined
+          Nothing -> case (x, y) of
+            (NumLit 0, t) -> t
+            (t, NumLit 0) -> t
+            _ -> Add x y
   Mul a b ->
     let a' = simplifyNum a
         b' = simplifyNum b
@@ -64,6 +65,10 @@ simplifyNum expr = case expr of
       (NumLit 1, x) -> x
       (x, NumLit 1) -> x
       (NumLit x, NumLit y) -> NumLit (x * y)
+      (NumLit x, Mul (NumLit y) t) -> Mul (NumLit (x * y)) t
+      (Mul (NumLit y) t, NumLit x) -> Mul (NumLit (x * y)) t
+      (Neg x, y) -> Neg (Mul x y)
+      (x, Neg y) -> Neg (Mul x y)
       _ -> Mul a' b'
   Pow a b ->
     let a' = simplifyNum a
@@ -178,12 +183,39 @@ rationalToInt r =
     then Just (numerator r)
     else Nothing
 
+combineLike :: NumExpr -> NumExpr -> Maybe NumExpr
+combineLike a b =
+  let (ka, ta) = splitCoeff a
+      (kb, tb) = splitCoeff b
+  in if eqNum ta tb
+      then Just (buildCoeff (ka + kb) ta)
+      else Nothing
+
+splitCoeff :: NumExpr -> (Rational, NumExpr)
+splitCoeff expr = case expr of
+  NumLit r -> (r, NumLit 1)
+  Mul (NumLit r) t -> (r, t)
+  Neg t ->
+    let (k, core) = splitCoeff t
+    in (-k, core)
+  _ -> (1, expr)
+
+buildCoeff :: Rational -> NumExpr -> NumExpr
+buildCoeff k term
+  | k == 0 = NumLit 0
+  | k == 1 = term
+  | k == -1 = Neg term
+  | eqNum term (NumLit 1) = NumLit k
+  | otherwise = Mul (NumLit k) term
+
 eqNum :: NumExpr -> NumExpr -> Bool
 eqNum a b = case (a, b) of
   (NumLit x, NumLit y) -> x == y
   (Var x, Var y) -> x == y
-  (Add a1 b1, Add a2 b2) -> eqNum a1 a2 && eqNum b1 b2
-  (Mul a1 b1, Mul a2 b2) -> eqNum a1 a2 && eqNum b1 b2
+  (Add a1 b1, Add a2 b2) ->
+    (eqNum a1 a2 && eqNum b1 b2) || (eqNum a1 b2 && eqNum b1 a2)
+  (Mul a1 b1, Mul a2 b2) ->
+    (eqNum a1 a2 && eqNum b1 b2) || (eqNum a1 b2 && eqNum b1 a2)
   (Pow a1 b1, Pow a2 b2) -> eqNum a1 a2 && eqNum b1 b2
   (Neg x, Neg y) -> eqNum x y
   (Sin x, Sin y) -> eqNum x y

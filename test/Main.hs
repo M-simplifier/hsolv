@@ -37,11 +37,16 @@ main = do
         , testParseBool
         , testSimplifyIdentity
         , testSimplifyCancel
+        , testSimplifyCombineLike
+        , testSimplifyCombineCoeff
+        , testSimplifyMulCoeff
         , testDiffSquare
         , testEvalNumeric
         , testSolveQuadratic
         , testSolveLinear
         , testSolveNonPolynomial
+        , testSolvePerfectSquare
+        , testSolveConstant
         ]
       failures = [msg | Fail msg <- (results <> qcResults)]
   if null failures
@@ -73,6 +78,21 @@ testSimplifyCancel :: TestResult
 testSimplifyCancel =
   let expr = Add (Var "x") (Neg (Var "x"))
   in assertEq "simplify cancel" "0" (prettyNum (simplifyNum expr))
+
+testSimplifyCombineLike :: TestResult
+testSimplifyCombineLike =
+  let expr = Add (Var "x") (Var "x")
+  in assertEq "simplify combine like" "2 * x" (prettyNum (simplifyNum expr))
+
+testSimplifyCombineCoeff :: TestResult
+testSimplifyCombineCoeff =
+  let expr = Add (Mul (NumLit 2) (Var "x")) (Mul (NumLit 3) (Var "x"))
+  in assertEq "simplify combine coeff" "5 * x" (prettyNum (simplifyNum expr))
+
+testSimplifyMulCoeff :: TestResult
+testSimplifyMulCoeff =
+  let expr = Mul (NumLit 2) (Mul (NumLit 3) (Var "x"))
+  in assertEq "simplify mul coeff" "6 * x" (prettyNum (simplifyNum expr))
 
 testDiffSquare :: TestResult
 testDiffSquare =
@@ -118,6 +138,25 @@ testSolveNonPolynomial =
       case solveQuadratic "x" expr of
         Left _ -> Pass
         Right _ -> Fail "solve non-polynomial should fail"
+
+testSolvePerfectSquare :: TestResult
+testSolvePerfectSquare =
+  case parseNumText "x^2 - 2*x - 3" of
+    Left err -> Fail ("parse failed: " <> Text.unpack err)
+    Right expr ->
+      case solveQuadratic "x" expr of
+        Left err -> Fail ("solve failed: " <> Text.unpack err)
+        Right roots ->
+          assertEq "solve perfect square" ["3", "-1"] (map prettyNum roots)
+
+testSolveConstant :: TestResult
+testSolveConstant =
+  case parseNumText "2" of
+    Left err -> Fail ("parse failed: " <> Text.unpack err)
+    Right expr ->
+      case solveQuadratic "x" expr of
+        Left _ -> Pass
+        Right _ -> Fail "solve constant should fail"
 
 propSimplifyIdempotent :: NumExprGen -> Bool
 propSimplifyIdempotent (NumExprGen expr) =
