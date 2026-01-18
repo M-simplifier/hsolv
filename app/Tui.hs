@@ -84,37 +84,36 @@ attrBackground = attrName "background"
 
 drawUI :: AppState -> [Widget Name]
 drawUI st =
-  [ ui
-  , backdrop
+  [ backdrop
+  , ui
   ]
   where
     backdrop = withAttr attrBackground (fill ' ')
     ui =
       vBox
         [ withBorderStyle unicodeRounded $
-            vLimitPercent 80 $
-              hBox
-                [ hLimitPercent 70 $
-                    withAttr attrOutput $
-                      borderWithLabel (withAttr attrTitle (str "Output")) (renderOutput st)
-                , vBox
-                    [ vLimit suggestionsHeight $
-                        withAttr attrSidebar $
-                          borderWithLabel (withAttr attrTitle (str "Suggestions")) (renderSuggestions st)
-                    , vLimit docHeight $
-                        withAttr attrSidebar $
-                          borderWithLabel (withAttr attrTitle (str "Doc")) (padAll 1 (txtWrap (stDoc st)))
-                    , fill ' '
-                    ]
-                , fill ' '
-                ]
+            hBox
+              [ hLimitPercent 70 $
+                  withAttr attrOutput $
+                    borderWithLabel (withAttr attrTitle (str "Output")) (renderOutput st)
+              , vBox
+                  [ vLimit suggestionsHeight $
+                      withAttr attrSidebar $
+                        borderWithLabel (withAttr attrTitle (str "Suggestions")) (renderSuggestions st)
+                  , vLimit docHeight $
+                      withAttr attrSidebar $
+                        borderWithLabel (withAttr attrTitle (str "Doc")) (padAll 1 (txtWrap (stDoc st)))
+                  , fill ' '
+                  ]
+              , fill ' '
+              ]
+        , fill ' '
         , withBorderStyle unicodeRounded $
             vLimit 3 $
               withAttr attrInputBorder $
                 borderWithLabel (withAttr attrTitle (str "Input")) (padAll 0 (renderEditor (txt . Text.unlines) True (stEditor st)))
         , withAttr attrHint $
             padLeftRight 1 (txt "Enter=run  Tab=complete  Up/Down=history  Esc/Ctrl-C=quit")
-        , fill ' '
         ]
 
 suggestionsHeight :: Int
