@@ -65,6 +65,7 @@ executable hsolv
         HSolv.Doc
         HSolv.Eval
         HSolv.Expr
+        HSolv.ExprUtil
         HSolv.Parser
         HSolv.Pretty
         HSolv.Solve
@@ -95,6 +96,7 @@ executable hsolv-tui
         HSolv.Doc
         HSolv.Eval
         HSolv.Expr
+        HSolv.ExprUtil
         HSolv.Parser
         HSolv.Pretty
         HSolv.Simplify
@@ -121,6 +123,7 @@ test-suite hsolv-test
         HSolv.Doc
         HSolv.Eval
         HSolv.Expr
+        HSolv.ExprUtil
         HSolv.Parser
         HSolv.Pretty
         HSolv.Solve

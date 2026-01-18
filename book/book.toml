@@ -1,0 +1,10 @@
+[book]
+title = "hsolv: 型安全な記号計算エンジンの作り方"
+authors = ["hsolv contributors"]
+language = "ja"
+src = "src"
+
+[output.html]
+default-theme = "light"
+preferred-dark-theme = "coal"
+no-section-label = true

@@ -9,32 +9,11 @@ module HSolv.Simplify
 
 import Data.Ratio (denominator, numerator, (%))
 import HSolv.Expr
+import HSolv.ExprUtil
 
 simplifySome :: SomeExpr -> SomeExpr
-simplifySome (SomeExpr expr) = case expr of
-  NumLit {} -> SomeExpr (simplifyNum expr)
-  Var {} -> SomeExpr (simplifyNum expr)
-  Add {} -> SomeExpr (simplifyNum expr)
-  Mul {} -> SomeExpr (simplifyNum expr)
-  Pow {} -> SomeExpr (simplifyNum expr)
-  Neg {} -> SomeExpr (simplifyNum expr)
-  Sin {} -> SomeExpr (simplifyNum expr)
-  Cos {} -> SomeExpr (simplifyNum expr)
-  Tan {} -> SomeExpr (simplifyNum expr)
-  Exp {} -> SomeExpr (simplifyNum expr)
-  Log {} -> SomeExpr (simplifyNum expr)
-  Sqrt {} -> SomeExpr (simplifyNum expr)
-  Abs {} -> SomeExpr (simplifyNum expr)
-  If {} -> SomeExpr (simplifyNum expr)
-  BoolLit {} -> SomeExpr (simplifyBool expr)
-  Eq {} -> SomeExpr (simplifyBool expr)
-  Lt {} -> SomeExpr (simplifyBool expr)
-  Le {} -> SomeExpr (simplifyBool expr)
-  Gt {} -> SomeExpr (simplifyBool expr)
-  Ge {} -> SomeExpr (simplifyBool expr)
-  And {} -> SomeExpr (simplifyBool expr)
-  Or {} -> SomeExpr (simplifyBool expr)
-  Not {} -> SomeExpr (simplifyBool expr)
+simplifySome expr =
+  matchSome expr (SomeExpr . simplifyNum) (SomeExpr . simplifyBool)
 
 simplifyNum :: NumExpr -> NumExpr
 simplifyNum expr = case expr of

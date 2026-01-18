@@ -13,36 +13,15 @@ import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Text (Text)
 import HSolv.Expr
+import HSolv.ExprUtil
 
 data Value = VNum !Double | VBool !Bool
 
 type Env = Map Text Double
 
 evalSome :: Env -> SomeExpr -> Either Text Value
-evalSome env (SomeExpr expr) = case expr of
-  NumLit {} -> VNum <$> evalNum env expr
-  Var {} -> VNum <$> evalNum env expr
-  Add {} -> VNum <$> evalNum env expr
-  Mul {} -> VNum <$> evalNum env expr
-  Pow {} -> VNum <$> evalNum env expr
-  Neg {} -> VNum <$> evalNum env expr
-  Sin {} -> VNum <$> evalNum env expr
-  Cos {} -> VNum <$> evalNum env expr
-  Tan {} -> VNum <$> evalNum env expr
-  Exp {} -> VNum <$> evalNum env expr
-  Log {} -> VNum <$> evalNum env expr
-  Sqrt {} -> VNum <$> evalNum env expr
-  Abs {} -> VNum <$> evalNum env expr
-  If {} -> VNum <$> evalNum env expr
-  BoolLit {} -> VBool <$> evalBool env expr
-  Eq {} -> VBool <$> evalBool env expr
-  Lt {} -> VBool <$> evalBool env expr
-  Le {} -> VBool <$> evalBool env expr
-  Gt {} -> VBool <$> evalBool env expr
-  Ge {} -> VBool <$> evalBool env expr
-  And {} -> VBool <$> evalBool env expr
-  Or {} -> VBool <$> evalBool env expr
-  Not {} -> VBool <$> evalBool env expr
+evalSome env expr =
+  matchSome expr (fmap VNum . evalNum env) (fmap VBool . evalBool env)
 
 evalNum :: Env -> NumExpr -> Either Text Double
 evalNum env expr = case expr of

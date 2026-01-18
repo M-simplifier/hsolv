@@ -11,32 +11,10 @@ import Data.Ratio (denominator, numerator)
 import Data.Text (Text)
 import qualified Data.Text as Text
 import HSolv.Expr
+import HSolv.ExprUtil
 
 prettyExpr :: SomeExpr -> Text
-prettyExpr (SomeExpr expr) = case expr of
-  NumLit {} -> prettyNum expr
-  Var {} -> prettyNum expr
-  Add {} -> prettyNum expr
-  Mul {} -> prettyNum expr
-  Pow {} -> prettyNum expr
-  Neg {} -> prettyNum expr
-  Sin {} -> prettyNum expr
-  Cos {} -> prettyNum expr
-  Tan {} -> prettyNum expr
-  Exp {} -> prettyNum expr
-  Log {} -> prettyNum expr
-  Sqrt {} -> prettyNum expr
-  Abs {} -> prettyNum expr
-  If {} -> prettyNum expr
-  BoolLit {} -> prettyBool expr
-  Eq {} -> prettyBool expr
-  Lt {} -> prettyBool expr
-  Le {} -> prettyBool expr
-  Gt {} -> prettyBool expr
-  Ge {} -> prettyBool expr
-  And {} -> prettyBool expr
-  Or {} -> prettyBool expr
-  Not {} -> prettyBool expr
+prettyExpr expr = matchSome expr prettyNum prettyBool
 
 prettyNum :: NumExpr -> Text
 prettyNum = prettyNumPrec 0
