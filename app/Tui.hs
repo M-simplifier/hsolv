@@ -4,6 +4,7 @@ module Main where
 
 import Brick
 import Brick.Widgets.Border
+import Brick.Widgets.Border.Style
 import Brick.Widgets.Edit
 import Data.Functor (void)
 import Data.Maybe (fromMaybe)
@@ -46,28 +47,56 @@ app = App
   }
 
 theMap :: AttrMap
-theMap = attrMap V.defAttr
-  [ (editAttr, V.white `on` V.black)
-  , (editFocusedAttr, V.black `on` V.yellow)
+theMap = attrMap baseAttr
+  [ (editAttr, V.white `on` rgb 20 22 28)
+  , (editFocusedAttr, rgb 20 22 28 `on` rgb 255 214 90)
+  , (attrTitle, V.withStyle (rgb 138 180 255 `on` rgb 17 19 24) V.bold)
+  , (attrOutput, rgb 230 233 240 `on` rgb 17 19 24)
+  , (attrSidebar, rgb 200 205 220 `on` rgb 13 15 20)
+  , (attrSuggestion, rgb 120 214 198 `on` rgb 13 15 20)
+  , (attrHint, rgb 150 155 170 `on` rgb 17 19 24)
+  , (attrMuted, rgb 110 115 130 `on` rgb 13 15 20)
+  , (attrInputBorder, rgb 255 214 90 `on` rgb 17 19 24)
   ]
+  where
+    baseAttr = rgb 230 233 240 `on` rgb 17 19 24
+
+rgb :: Int -> Int -> Int -> V.Color
+rgb = V.rgbColor
+
+attrTitle, attrOutput, attrSidebar, attrSuggestion, attrHint, attrMuted, attrInputBorder :: AttrName
+attrTitle = attrName "title"
+attrOutput = attrName "output"
+attrSidebar = attrName "sidebar"
+attrSuggestion = attrName "suggestion"
+attrHint = attrName "hint"
+attrMuted = attrName "muted"
+attrInputBorder = attrName "input-border"
 
 drawUI :: AppState -> [Widget Name]
 drawUI st =
-  [ vBox
+  [ withBorderStyle unicodeRounded $
+    vBox
       [ vLimitPercent 80 $
           hBox
-            [ hLimitPercent 70 $ borderWithLabel (str "Output") (renderOutput st)
+            [ hLimitPercent 70 $
+                withAttr attrOutput $
+                  borderWithLabel (withAttr attrTitle (str "Output")) (renderOutput st)
             , vBox
                 [ vLimit suggestionsHeight $
-                    borderWithLabel (str "Suggestions") (renderSuggestions st)
+                    withAttr attrSidebar $
+                      borderWithLabel (withAttr attrTitle (str "Suggestions")) (renderSuggestions st)
                 , vLimit docHeight $
-                    borderWithLabel (str "Doc") (padAll 1 (txtWrap (stDoc st)))
+                    withAttr attrSidebar $
+                      borderWithLabel (withAttr attrTitle (str "Doc")) (padAll 1 (txtWrap (stDoc st)))
                 , fill ' '
                 ]
             ]
       , vLimit 3 $
-          borderWithLabel (str "Input") (padAll 0 (renderEditor (txt . Text.unlines) True (stEditor st)))
-      , padLeftRight 1 (txt "Enter=run  Tab=complete  Up/Down=history  Esc/Ctrl-C=quit")
+          withAttr attrInputBorder $
+            borderWithLabel (withAttr attrTitle (str "Input")) (padAll 0 (renderEditor (txt . Text.unlines) True (stEditor st)))
+      , withAttr attrHint $
+          padLeftRight 1 (txt "Enter=run  Tab=complete  Up/Down=history  Esc/Ctrl-C=quit")
       ]
   ]
 
@@ -87,7 +116,8 @@ renderSuggestions :: AppState -> Widget Name
 renderSuggestions st =
   let items = take 8 (stSuggestions st)
       rows = if null items then ["(no matches)"] else items
-  in padAll 1 (vBox (map txt rows <> [fill ' ']))
+      renderRow row = withAttr attrSuggestion (txt row)
+  in padAll 1 (vBox (map renderRow rows <> [withAttr attrMuted (fill ' ')]))
 
 handleEvent :: BrickEvent Name e -> EventM Name AppState ()
 handleEvent (VtyEvent (V.EvKey V.KEsc [])) = halt
