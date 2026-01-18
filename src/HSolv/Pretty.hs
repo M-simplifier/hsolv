@@ -49,7 +49,8 @@ prettyNumPrec _ (NumLit r) = prettyRational r
 prettyNumPrec _ (Var name) = name
 prettyNumPrec p (Add a b) = parensIf (p > 1) (prettyNumPrec 1 a <> " + " <> prettyNumPrec 1 b)
 prettyNumPrec p (Mul a b) = parensIf (p > 2) (prettyNumPrec 2 a <> " * " <> prettyNumPrec 2 b)
-prettyNumPrec p (Pow a b) = parensIf (p > 3) (prettyNumPrec 3 a <> " ^ " <> prettyNumPrec 4 b)
+prettyNumPrec p (Pow a b) =
+  parensIf (p > 3) (prettyPowBase a <> " ^ " <> prettyNumPrec 4 b)
 prettyNumPrec p (Neg a) = parensIf (p > 4) ("-" <> prettyNumPrec 4 a)
 prettyNumPrec _ (Sin a) = "sin(" <> prettyNumPrec 0 a <> ")"
 prettyNumPrec _ (Cos a) = "cos(" <> prettyNumPrec 0 a <> ")"
@@ -84,3 +85,8 @@ prettyRational r
 parensIf :: Bool -> Text -> Text
 parensIf True t = "(" <> t <> ")"
 parensIf False t = t
+
+prettyPowBase :: NumExpr -> Text
+prettyPowBase expr = case expr of
+  Pow {} -> "(" <> prettyNumPrec 0 expr <> ")"
+  _ -> prettyNumPrec 3 expr
